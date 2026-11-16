@@ -1,0 +1,38 @@
+name: Build debug APK
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # Debug builds are signed automatically with a debug key, no secrets needed.
+      # Gradle downloads the pinned NDK and SDK platform if the runner lacks them.
+      - name: Build debug APK
+        run: ./gradlew --no-daemon assembleNonRootDebug
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: moonlight-debug-apk-${{ github.sha }}
+          path: app/build/outputs/apk/**/*.apk
+          if-no-files-found: error
